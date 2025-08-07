@@ -1,0 +1,14 @@
+[package]
+name = "kcn"
+version = "1.0.0"
+edition = "2021"
+description = "KCN - A CLI tool to switch between built-in shadcn themes"
+authors = ["KCN Theme Switcher"]
+
+[[bin]]
+name = "kcn"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+regex = "1.10"
