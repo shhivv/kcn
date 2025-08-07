@@ -12,3 +12,4 @@ path = "src/main.rs"
 [dependencies]
 clap = { version = "4.4", features = ["derive"] }
 regex = "1.10"
+crossterm = "0.27"

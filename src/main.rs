@@ -2,8 +2,15 @@ use clap::{Arg, Command};
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::path::PathBuf;
+
+use crossterm::{
+    cursor::{Hide, Show},
+    event::{read, Event, KeyCode, KeyEventKind},
+    execute,
+    terminal::{disable_raw_mode as ct_disable_raw_mode, enable_raw_mode as ct_enable_raw_mode},
+};
 
 #[derive(Debug, Clone)]
 struct Theme {
@@ -611,73 +618,57 @@ fn arrow_key_mode(css_path: &PathBuf, themes: &HashMap<String, Theme>) {
     
     let mut current_index = 0;
     
-    // Enable raw mode for terminal
-    enable_raw_mode();
-    
+    // Enable raw mode for terminal and hide cursor
+    ct_enable_raw_mode().ok();
+    let _ = execute!(io::stdout(), Hide);
+
     // Apply initial theme and display UI
     let _ = apply_theme(css_path, themes, &theme_names[current_index]);
     display_ui(css_path, &theme_names, current_index);
-    
-    // Handle keyboard input
-    let mut stdin = io::stdin();
-    let mut buffer = [0u8; 3];
-    
+
+    // Handle keyboard input using crossterm
     loop {
-        // Read a single byte
-        match stdin.read_exact(&mut buffer[0..1]) {
-            Ok(_) => {
-                match buffer[0] {
-                    // Escape sequence start
-                    27 => {
-                        // Read the next two bytes for arrow keys
-                        if stdin.read_exact(&mut buffer[1..3]).is_ok() {
-                            if buffer[1] == b'[' {
-                                match buffer[2] {
-                                    // Left arrow (previous theme)
-                                    68 => {
-                                        current_index = if current_index == 0 { 
-                                            theme_names.len() - 1 
-                                        } else { 
-                                            current_index - 1 
-                                        };
-                                        let _ = apply_theme(css_path, themes, &theme_names[current_index]);
-                                        display_ui(css_path, &theme_names, current_index);
-                                    }
-                                    // Right arrow (next theme)
-                                    67 => {
-                                        current_index = (current_index + 1) % theme_names.len();
-                                        let _ = apply_theme(css_path, themes, &theme_names[current_index]);
-                                        display_ui(css_path, &theme_names, current_index);
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
+        match read() {
+            Ok(Event::Key(key)) if key.kind == KeyEventKind::Press => {
+                match key.code {
+                    KeyCode::Left => {
+                        current_index = if current_index == 0 {
+                            theme_names.len() - 1
+                        } else {
+                            current_index - 1
+                        };
+                        let _ = apply_theme(css_path, themes, &theme_names[current_index]);
+                        display_ui(css_path, &theme_names, current_index);
                     }
-                    // 'q' to quit
-                    113 => {
+                    KeyCode::Right => {
+                        current_index = (current_index + 1) % theme_names.len();
+                        let _ = apply_theme(css_path, themes, &theme_names[current_index]);
+                        display_ui(css_path, &theme_names, current_index);
+                    }
+                    KeyCode::Enter => {
                         break;
                     }
-                    // Enter to confirm and exit
-                    13 | 10 => {
+                    KeyCode::Char('q') | KeyCode::Esc => {
                         break;
                     }
                     _ => {}
                 }
             }
+            Ok(_) => {}
             Err(_) => break,
         }
     }
-    
+
     // Restore terminal
-    disable_raw_mode();
-    print!("{}", SHOW_CURSOR);
+    ct_disable_raw_mode().ok();
+    let _ = execute!(io::stdout(), Show);
     println!("\n✅ Applied theme: {}", theme_names[current_index]);
     println!("👋 Happy theming!");
 }
 
 fn display_ui(css_path: &PathBuf, theme_names: &[String], current_index: usize) {
-    print!("{}{}{}", CLEAR_SCREEN, CURSOR_HOME, HIDE_CURSOR);
+    // Clear screen and move cursor home; cursor visibility handled by crossterm in arrow_key_mode
+    print!("{}{}", CLEAR_SCREEN, CURSOR_HOME);
     
     println!("🎨 KCN Theme Switcher - Live Preview Mode");
     println!("═══════════════════════════════════════════");
@@ -705,19 +696,6 @@ fn display_ui(css_path: &PathBuf, theme_names: &[String], current_index: usize) 
     io::stdout().flush().unwrap();
 }
 
-fn enable_raw_mode() {
-    use std::process::Command;
-    let _ = Command::new("stty")
-        .args(&["-echo", "-icanon"])
-        .status();
-}
-
-fn disable_raw_mode() {
-    use std::process::Command;
-    let _ = Command::new("stty")
-        .args(&["echo", "icanon"])
-        .status();
-}
 
 fn apply_theme(
     css_path: &PathBuf,
