@@ -1,4 +1,3 @@
-#![allow(unused)]
 use clap::{Arg, Command};
 use regex::Regex;
 use std::collections::HashMap;
@@ -14,6 +13,7 @@ use crossterm::{
 };
 
 #[derive(Debug, Clone)]
+#[allow(unused)]
 pub struct Theme {
     name: String,
     root_content: String,
@@ -23,14 +23,12 @@ pub struct Theme {
 // Terminal control sequences
 const CLEAR_SCREEN: &str = "\x1b[2J";
 const CURSOR_HOME: &str = "\x1b[H";
-const HIDE_CURSOR: &str = "\x1b[?25l";
-const SHOW_CURSOR: &str = "\x1b[?25h";
 
 mod themes;
 
 fn main() {
     let matches = Command::new("kcn")
-        .version("1.0.0")
+        .version("0.0.1")
         .author("KCN Theme Switcher")
         .about("Navigate between built-in shadcn themes with arrow keys for live preview")
         .arg(
@@ -109,11 +107,10 @@ fn main() {
 }
 
 fn load_builtin_themes() -> HashMap<String, Theme> {
-    use crate::themes::{autumn_leaves, blue, deep_space, default, fresh_mint, green, purple, rose};
+    use crate::themes::{arctic_ice, autumn_leaves, blue, deep_space, fresh_mint, golden_sand, green, lavender_dream, ocean_breeze, purple, rose, sunset_glow};
 
     let mut themes = HashMap::new();
     for (name, theme) in [
-        default::get(),
         blue::get(),
         green::get(),
         purple::get(),
@@ -121,6 +118,11 @@ fn load_builtin_themes() -> HashMap<String, Theme> {
         deep_space::get(),
         autumn_leaves::get(),
         fresh_mint::get(),
+        ocean_breeze::get(),
+        sunset_glow::get(),
+        lavender_dream::get(),
+        golden_sand::get(),
+        arctic_ice::get(),
     ] {
         themes.insert(name.to_string(), theme);
     }
@@ -166,6 +168,9 @@ fn arrow_key_mode(css_path: &PathBuf, themes: &HashMap<String, Theme>) {
     theme_names.sort(); // Sort themes alphabetically
 
     let mut current_index = 0;
+    
+    // Save the original CSS content to restore on quit
+    let original_css_content = fs::read_to_string(css_path).unwrap_or_default();
 
     // Enable raw mode for terminal and hide cursor
     ct_enable_raw_mode().ok();
@@ -176,10 +181,11 @@ fn arrow_key_mode(css_path: &PathBuf, themes: &HashMap<String, Theme>) {
     display_ui(css_path, &theme_names, current_index);
 
     // Handle keyboard input using crossterm
+    let mut quit_without_saving = false;
     loop {
         match read() {
             Ok(Event::Key(key)) if key.kind == KeyEventKind::Press => match key.code {
-                KeyCode::Left => {
+                KeyCode::Up => {
                     current_index = if current_index == 0 {
                         theme_names.len() - 1
                     } else {
@@ -188,7 +194,7 @@ fn arrow_key_mode(css_path: &PathBuf, themes: &HashMap<String, Theme>) {
                     let _ = apply_theme(css_path, themes, &theme_names[current_index]);
                     display_ui(css_path, &theme_names, current_index);
                 }
-                KeyCode::Right => {
+                KeyCode::Down => {
                     current_index = (current_index + 1) % theme_names.len();
                     let _ = apply_theme(css_path, themes, &theme_names[current_index]);
                     display_ui(css_path, &theme_names, current_index);
@@ -197,6 +203,7 @@ fn arrow_key_mode(css_path: &PathBuf, themes: &HashMap<String, Theme>) {
                     break;
                 }
                 KeyCode::Char('q') | KeyCode::Esc => {
+                    quit_without_saving = true;
                     break;
                 }
                 _ => {}
@@ -206,10 +213,20 @@ fn arrow_key_mode(css_path: &PathBuf, themes: &HashMap<String, Theme>) {
         }
     }
 
+    // Restore original theme if quit without saving
+    if quit_without_saving {
+        let _ = fs::write(css_path, original_css_content);
+    }
+
     // Restore terminal
     ct_disable_raw_mode().ok();
     let _ = execute!(io::stdout(), Show);
-    println!("\n✅ Applied theme: {}", theme_names[current_index]);
+    
+    if quit_without_saving {
+        println!("\n❌ Quit without applying theme");
+    } else {
+        println!("\n✅ Applied theme: {}", theme_names[current_index]);
+    }
     println!("👋 Happy theming!");
 }
 
@@ -239,7 +256,7 @@ fn display_ui(css_path: &Path, theme_names: &[String], current_index: usize) {
     ); // Cyan and bold
     println!();
     println!("⌨️  Controls:");
-    println!("   ← → Navigate themes (live preview)");
+    println!("   ↑ ↓ Navigate themes (live preview)");
     println!("   Enter  Apply and exit");
     println!("   q      Quit");
 
@@ -283,12 +300,16 @@ mod tests {
     fn test_builtin_themes_loaded() {
         let themes = load_builtin_themes();
         assert!(!themes.is_empty());
-        assert!(themes.contains_key("default"));
         assert!(themes.contains_key("blue"));
         assert!(themes.contains_key("green"));
         assert!(themes.contains_key("deep_space"));
         assert!(themes.contains_key("autumn_leaves"));
         assert!(themes.contains_key("fresh_mint"));
+        assert!(themes.contains_key("ocean_breeze"));
+        assert!(themes.contains_key("sunset_glow"));
+        assert!(themes.contains_key("lavender_dream"));
+        assert!(themes.contains_key("golden_sand"));
+        assert!(themes.contains_key("arctic_ice"));
     }
 
     #[test]

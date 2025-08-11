@@ -1,8 +1,12 @@
 pub mod blue;
-pub mod default;
 pub mod green;
 pub mod purple;
 pub mod rose;
 pub mod deep_space;
 pub mod autumn_leaves;
 pub mod fresh_mint;
+pub mod ocean_breeze;
+pub mod sunset_glow;
+pub mod lavender_dream;
+pub mod golden_sand;
+pub mod arctic_ice;
