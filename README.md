@@ -10,7 +10,9 @@ A CLI tool to switch between built-in shadcn themes with live preview.
 - Search for CSS files in common locations
 
 ## Installation
-
+```bash
+cargo install kcn
+```
 
 ## Usage
 
