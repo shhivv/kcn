@@ -4,8 +4,7 @@ pub fn get() -> (&'static str, Theme) {
     ("purple",
         Theme {
             name: "purple".to_string(),
-            root_content: r#"--radius: 0.5rem;
-  --background: oklch(1 0 0);
+            root_content: r#"--background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.141 0.005 285.823);
@@ -36,10 +35,7 @@ pub fn get() -> (&'static str, Theme) {
   --sidebar-accent: oklch(0.967 0.001 286.375);
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.6 0.25 280);
-  --font-sans: Geist Mono, monospace;
-  --font-serif: Geist Mono, monospace;
-  --font-mono: Geist Mono, monospace;"#.to_string(),
+  --sidebar-ring: oklch(0.6 0.25 280);"#.to_string(),
             dark_content: r#"--background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
@@ -71,10 +67,7 @@ pub fn get() -> (&'static str, Theme) {
   --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.7 0.25 280);
-  --font-sans: Geist Mono, monospace;
-  --font-serif: Geist Mono, monospace;
-  --font-mono: Geist Mono, monospace;"#.to_string(),
+  --sidebar-ring: oklch(0.7 0.25 280);"#.to_string(),
         }
     )
 }
