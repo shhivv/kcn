@@ -1,9 +1,10 @@
+#![allow(unused)]
 use clap::{Arg, Command};
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crossterm::{
     cursor::{Hide, Show},
@@ -70,9 +71,11 @@ fn main() {
     let css_path = match find_css_file(css_filename, search_paths) {
         Some(path) => path,
         None => {
-            eprintln!("❌ Could not find CSS file: {}", css_filename);
+            eprintln!("❌ Could not find CSS file: {css_filename}");
             if !search_paths {
-                eprintln!("💡 Try using --search to look in common directories (src/, app/, styles/)");
+                eprintln!(
+                    "💡 Try using --search to look in common directories (src/, app/, styles/)"
+                );
             }
             std::process::exit(1);
         }
@@ -86,8 +89,8 @@ fn main() {
     // Handle list command
     if matches.get_flag("list") {
         println!("\n🎨 Available built-in themes:");
-        for (name, _) in &themes {
-            println!("  • {}", name);
+        for name in themes.keys() {
+            println!("  • {name}");
         }
         return;
     }
@@ -95,10 +98,10 @@ fn main() {
     // Handle direct theme application or interactive mode (default)
     if let Some(theme_name) = matches.get_one::<String>("theme-name") {
         if let Err(e) = apply_theme(&css_path, &themes, theme_name) {
-            eprintln!("❌ Error applying theme: {}", e);
+            eprintln!("❌ Error applying theme: {e}");
             std::process::exit(1);
         }
-        println!("✅ Applied theme: {}", theme_name);
+        println!("✅ Applied theme: {theme_name}");
     } else {
         // Default to arrow key navigation mode
         arrow_key_mode(&css_path, &themes);
@@ -109,7 +112,13 @@ fn load_builtin_themes() -> HashMap<String, Theme> {
     use crate::themes::{blue, default, green, purple, rose};
 
     let mut themes = HashMap::new();
-    for (name, theme) in [default::get(), blue::get(), green::get(), purple::get(), rose::get()] {
+    for (name, theme) in [
+        default::get(),
+        blue::get(),
+        green::get(),
+        purple::get(),
+        rose::get(),
+    ] {
         themes.insert(name.to_string(), theme);
     }
     themes
@@ -117,7 +126,7 @@ fn load_builtin_themes() -> HashMap<String, Theme> {
 
 fn find_css_file(filename: &str, search_common_paths: bool) -> Option<PathBuf> {
     let current_dir = std::env::current_dir().ok()?;
-    
+
     // First, try the current directory
     let direct_path = current_dir.join(filename);
     if direct_path.exists() {
@@ -126,15 +135,7 @@ fn find_css_file(filename: &str, search_common_paths: bool) -> Option<PathBuf> {
 
     // If search flag is enabled, look in common directories
     if search_common_paths {
-        let common_paths = vec![
-            "src",
-            "app", 
-            "styles",
-            "css",
-            "assets",
-            "public",
-            "static",
-        ];
+        let common_paths = vec!["src", "app", "styles", "css", "assets", "public", "static"];
 
         for path in common_paths {
             let search_path = current_dir.join(path).join(filename);
@@ -144,12 +145,7 @@ fn find_css_file(filename: &str, search_common_paths: bool) -> Option<PathBuf> {
         }
 
         // Also try nested common paths
-        let nested_paths = vec![
-            "src/styles",
-            "src/css", 
-            "app/globals",
-            "styles/globals",
-        ];
+        let nested_paths = vec!["src/styles", "src/css", "app/globals", "styles/globals"];
 
         for path in nested_paths {
             let search_path = current_dir.join(path).join(filename);
@@ -165,9 +161,9 @@ fn find_css_file(filename: &str, search_common_paths: bool) -> Option<PathBuf> {
 fn arrow_key_mode(css_path: &PathBuf, themes: &HashMap<String, Theme>) {
     let mut theme_names: Vec<String> = themes.keys().cloned().collect();
     theme_names.sort(); // Sort themes alphabetically
-    
+
     let mut current_index = 0;
-    
+
     // Enable raw mode for terminal and hide cursor
     ct_enable_raw_mode().ok();
     let _ = execute!(io::stdout(), Hide);
@@ -179,31 +175,29 @@ fn arrow_key_mode(css_path: &PathBuf, themes: &HashMap<String, Theme>) {
     // Handle keyboard input using crossterm
     loop {
         match read() {
-            Ok(Event::Key(key)) if key.kind == KeyEventKind::Press => {
-                match key.code {
-                    KeyCode::Left => {
-                        current_index = if current_index == 0 {
-                            theme_names.len() - 1
-                        } else {
-                            current_index - 1
-                        };
-                        let _ = apply_theme(css_path, themes, &theme_names[current_index]);
-                        display_ui(css_path, &theme_names, current_index);
-                    }
-                    KeyCode::Right => {
-                        current_index = (current_index + 1) % theme_names.len();
-                        let _ = apply_theme(css_path, themes, &theme_names[current_index]);
-                        display_ui(css_path, &theme_names, current_index);
-                    }
-                    KeyCode::Enter => {
-                        break;
-                    }
-                    KeyCode::Char('q') | KeyCode::Esc => {
-                        break;
-                    }
-                    _ => {}
+            Ok(Event::Key(key)) if key.kind == KeyEventKind::Press => match key.code {
+                KeyCode::Left => {
+                    current_index = if current_index == 0 {
+                        theme_names.len() - 1
+                    } else {
+                        current_index - 1
+                    };
+                    let _ = apply_theme(css_path, themes, &theme_names[current_index]);
+                    display_ui(css_path, &theme_names, current_index);
                 }
-            }
+                KeyCode::Right => {
+                    current_index = (current_index + 1) % theme_names.len();
+                    let _ = apply_theme(css_path, themes, &theme_names[current_index]);
+                    display_ui(css_path, &theme_names, current_index);
+                }
+                KeyCode::Enter => {
+                    break;
+                }
+                KeyCode::Char('q') | KeyCode::Esc => {
+                    break;
+                }
+                _ => {}
+            },
             Ok(_) => {}
             Err(_) => break,
         }
@@ -216,36 +210,38 @@ fn arrow_key_mode(css_path: &PathBuf, themes: &HashMap<String, Theme>) {
     println!("👋 Happy theming!");
 }
 
-fn display_ui(css_path: &PathBuf, theme_names: &[String], current_index: usize) {
+fn display_ui(css_path: &Path, theme_names: &[String], current_index: usize) {
     // Clear screen and move cursor home; cursor visibility handled by crossterm in arrow_key_mode
-    print!("{}{}", CLEAR_SCREEN, CURSOR_HOME);
-    
+    print!("{CLEAR_SCREEN}{CURSOR_HOME}");
+
     println!("🎨 KCN Theme Switcher - Live Preview Mode");
     println!("═══════════════════════════════════════════");
     println!("📁 CSS file: {}", css_path.display());
     println!();
-    
+
     // Display themes with current selection highlighted
     println!("🌈 Themes:");
     for (i, name) in theme_names.iter().enumerate() {
         if i == current_index {
-            println!("  ▶ \x1b[1;32m{}\x1b[0m ◀", name); // Green and bold for current
+            println!("  ▶ \x1b[1;32m{name}\x1b[0m ◀"); // Green and bold for current
         } else {
-            println!("    {}", name);
+            println!("    {name}");
         }
     }
-    
+
     println!();
-    println!("🎯 Current: \x1b[1;36m{}\x1b[0m", theme_names[current_index]); // Cyan and bold
+    println!(
+        "🎯 Current: \x1b[1;36m{}\x1b[0m",
+        theme_names[current_index]
+    ); // Cyan and bold
     println!();
     println!("⌨️  Controls:");
     println!("   ← → Navigate themes (live preview)");
     println!("   Enter  Apply and exit");
     println!("   q      Quit");
-    
+
     io::stdout().flush().unwrap();
 }
-
 
 fn apply_theme(
     css_path: &PathBuf,
@@ -254,10 +250,10 @@ fn apply_theme(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let theme = themes
         .get(theme_name)
-        .ok_or(format!("Theme '{}' not found", theme_name))?;
+        .ok_or(format!("Theme '{theme_name}' not found"))?;
 
     let css_content = fs::read_to_string(css_path)?;
-    
+
     // Replace :root content with simpler regex
     let root_regex = Regex::new(r":root\s*\{[^}]*\}")?;
     let new_content = root_regex.replace(&css_content, |_: &regex::Captures| {
@@ -272,7 +268,7 @@ fn apply_theme(
 
     // Write back to file
     fs::write(css_path, final_content.as_ref())?;
-    
+
     Ok(())
 }
 
