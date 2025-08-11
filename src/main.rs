@@ -109,7 +109,7 @@ fn main() {
 }
 
 fn load_builtin_themes() -> HashMap<String, Theme> {
-    use crate::themes::{blue, default, green, purple, rose};
+    use crate::themes::{autumn_leaves, blue, deep_space, default, fresh_mint, green, purple, rose};
 
     let mut themes = HashMap::new();
     for (name, theme) in [
@@ -118,6 +118,9 @@ fn load_builtin_themes() -> HashMap<String, Theme> {
         green::get(),
         purple::get(),
         rose::get(),
+        deep_space::get(),
+        autumn_leaves::get(),
+        fresh_mint::get(),
     ] {
         themes.insert(name.to_string(), theme);
     }
@@ -283,6 +286,9 @@ mod tests {
         assert!(themes.contains_key("default"));
         assert!(themes.contains_key("blue"));
         assert!(themes.contains_key("green"));
+        assert!(themes.contains_key("deep_space"));
+        assert!(themes.contains_key("autumn_leaves"));
+        assert!(themes.contains_key("fresh_mint"));
     }
 
     #[test]
